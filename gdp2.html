@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <title>Olympics time Again !!</title>
+
+    <style>
+        .bubble {
+            fill: steelblue;
+            stroke: black;
+            stroke-width: 1px;
+        }
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        header,footer {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        img {
+            display: block;
+            margin: 0 auto; /* Center the image */
+            max-width: 100%; /* Responsive image */
+            height: 200px; /* Maintain aspect ratio */
+        }
+        .gdp{
+            padding-left: 200px;
+        }
+        .tooltip {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            pointer-events: none;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        /* Styling for the actual button element */
+        button {
+            padding: 10px 20px;
+            background-color: #008CBA;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .container {
+            text-align: center; /* Center text and inline elements */
+            margin-top: 20px; /* Adjust top margin as needed */
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Its Olympics time Again !!!!</h1>
+
+    </header>
+    <div>
+    <img src="img/paris-2024-olympics.jpg" alt="Description of Image">
+    <p> Lets take a look at corellation between GDP, population and medal count for Winter Olympics.
+    </p>
+    <h3>Winter Olympics GDP/Population effect on Medals by country</h3>
+    <div class="gdp">
+    
+    <div id="chart"></div>
+    <script>
+        // Set up dimensions
+        const margin = { top: 20, right: 120, bottom: 50, left: 60 };
+        const width = 1100 - margin.left - margin.right;
+        const height = 800 - margin.top - margin.bottom;
+
+        // Create SVG
+        const svg = d3.select("#chart")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // Load and process data
+        //Code,Count,Country,GDPperCapita,Population
+        d3.csv("data/gdp_medals_winter.csv").then(function(data) {
+            // Convert string values to numbers
+            data.forEach(d => {
+                d.Count = +d.Count;
+                d.GDPperCapita = +d.GDPperCapita;
+                d.Population = +d.Population;
+            });
+
+            // Set up scales
+            const xScale = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.Population)])
+                .range([0, width]);
+
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.GDPperCapita)])
+                .range([height, 0]);
+
+            const radiusScale = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.Count)])
+                .range([5, 20]);
+
+            const colorScale = d3.scaleOrdinal(d3.schemeCategory10)
+                .domain(data.map(d => d.Country));
+
+            // Create axes
+            const xAxis = d3.axisBottom(xScale);
+            const yAxis = d3.axisLeft(yScale);
+
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(xAxis);
+
+            svg.append("g")
+                .call(yAxis);
+
+            // Add axis labels
+            svg.append("text")
+                .attr("text-anchor", "middle")
+                .attr("x", width / 2)
+                .attr("y", height + margin.bottom - 10)
+                .text("Population(Millions)");
+
+            svg.append("text")
+                .attr("text-anchor", "middle")
+                .attr("transform", "rotate(-90)")
+                .attr("y", -margin.left + 20)
+                .attr("x", -height / 2)
+                .text("GDP(USD)");
+
+            // Create tooltip
+            const tooltip = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0);
+
+            // Add scatter plot points
+            svg.selectAll("circle")
+                .data(data)
+                .enter()
+                .append("circle")
+                .attr("cx", d => xScale(d.Population))
+                .attr("cy", d => yScale(d.GDPperCapita))
+                .attr("r", d => radiusScale(d.Count))
+                .attr("fill", d => colorScale(d.Country))
+                .attr("opacity", 0.7)
+                .on("mouseover", function(event, d) {
+                    tooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    tooltip.html(`Country: ${d.Country}<br/>Medals: ${d.Count}<br/>GDP: ${d.GDPperCapita}<br/>Population: ${d.Population}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", function(d) {
+                    tooltip.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                });
+
+            // Add legend
+            const legend = svg.selectAll(".legend")
+                .data(colorScale.domain())
+                .enter().append("g")
+                .attr("class", "legend")
+                .attr("transform", (d, i) => `translate(0,${i * 20})`);
+
+            legend.append("rect")
+                .attr("x", width+25)
+                .attr("width", 18)
+                .attr("height", 18)
+                .style("fill", colorScale);
+
+            legend.append("text")
+                .attr("x", width + 50)
+                .attr("y", 9)
+                .attr("dy", ".35em")
+                .style("text-anchor", "start")
+                .text(d => d);
+        });
+    </script>
+</div>
+<p>Again e can see a  clear association between higher GDP and higher medal values can be observed from the above plot. Countries with higher GDPs such as USA, Germany have generally accumulated more medals, although there were exceptions such as China, which saw increased medal counts despite a lesser GDP.</p>
+<p>Lets see what other factors have improved performance in Olympics. Lets see if hosting olympics have improved performance. </p>
+<div class="container">
+    <a href="host.html" class="button">Continue</a>
+    </div>
+<footer>
+    <p>&copy; 2024.</p>
+</footer>
+</body>
+</html>

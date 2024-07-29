@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <title>Olympics time Again !!</title>
+    <style>
+        .bubble {
+            fill: steelblue;
+            stroke: black;
+            stroke-width: 1px;
+        }
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        header,footer {
+            background-color: #333;
+            color: white !important;
+            padding: 20px;
+            text-align: center;
+        }
+        img {
+            display: block;
+            margin: 0 auto; /* Center the image */
+            max-width: 100%; /* Responsive image */
+            height: 200px; /* Maintain aspect ratio */
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        /* Styling for the actual button element */
+        button {
+            padding: 10px 20px;
+            background-color: #008CBA;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .container {
+            text-align: center; /* Center text and inline elements */
+            margin-top: 20px; /* Adjust top margin as needed */
+        }
+        .chart-container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .chart {
+            width: 45%;
+            min-width: 400px;
+            padding-left:150px;
+            margin-bottom: 20px;
+        }
+        .bar-hosted { fill: #1f77b4; }
+        .bar-non-hosted { fill: #ff7f0e; }
+    table {
+      width: 50%;
+      margin: 20px auto;
+      border-collapse: collapse;
+      font-family: Arial, sans-serif;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+    }
+    .highlight {
+      background-color: yellow !important;
+    }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Its Olympics time Again !!!!</h1>
+
+    </header>
+    <div>
+    <img src="img/paris-2024-olympics.jpg" alt="Description of Image">
+    <p> Lets take a look at whether hosting olympics improves the performance of a country.
+    </p>
+    <div>
+        <div id="summer-chart" class="chart"></div>
+        <div id="winter-chart" class="chart"></div>
+    
+        <script>
+            // Function to create a chart
+            function createChart(csvFile, chartId, chartTitle) {
+                d3.csv(csvFile).then(function(data) {
+                    // Convert string values to numbers
+                    data.forEach(function(d) {
+                        d.avg_hosted_medals = +d.avg_hosted_medals;
+                        d.avg_non_hosted_medals = +d.avg_non_hosted_medals;
+                    });
+    
+                    // Set up chart dimensions
+                    const margin = {top: 30, right: 30, bottom: 70, left: 100};
+                    const width = 1000 - margin.left - margin.right;
+                    const height = 400 - margin.top - margin.bottom;
+    
+                    // Create SVG element
+                    const svg = d3.select(chartId)
+                        .append("svg")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform", `translate(${margin.left},${margin.top})`);
+    
+                    // Set up scales
+                    const x = d3.scaleLinear()
+                        .domain([0, d3.max(data, d => Math.max(d.avg_hosted_medals, d.avg_non_hosted_medals))])
+                        .range([0, width]);
+    
+                    const y = d3.scaleBand()
+                        .domain(data.map(d => d.country))
+                        .range([0, height])
+                        .padding(0.1);
+    
+                    // Add x-axis
+                    svg.append("g")
+                        .attr("transform", `translate(0,${height})`)
+                        .call(d3.axisBottom(x))
+                        .selectAll("text")
+                        .attr("transform", "translate(-10,0)rotate(-45)")
+                        .style("text-anchor", "end");
+    
+                    // Add y-axis
+                    svg.append("g")
+                        .call(d3.axisLeft(y));
+    
+                    // Add hosted medals bars
+                    svg.selectAll(".bar-hosted")
+                        .data(data)
+                        .enter()
+                        .append("rect")
+                        .attr("class", "bar-hosted")
+                        .attr("y", d => y(d.country))
+                        .attr("height", y.bandwidth() / 2)
+                        .attr("x", 0)
+                        .attr("width", d => x(d.avg_hosted_medals));
+    
+                    // Add non-hosted medals bars
+                    svg.selectAll(".bar-non-hosted")
+                        .data(data)
+                        .enter()
+                        .append("rect")
+                        .attr("class", "bar-non-hosted")
+                        .attr("y", d => y(d.country) + y.bandwidth() / 2)
+                        .attr("height", y.bandwidth() / 2)
+                        .attr("x", 0)
+                        .attr("width", d => x(d.avg_non_hosted_medals));
+    
+                    // Add chart title
+                    svg.append("text")
+                        .attr("x", width / 2)
+                        .attr("y", -margin.top / 2)
+                        .attr("text-anchor", "middle")
+                        .style("font-size", "16px")
+                        .style("font-weight", "bold")
+                        .text(chartTitle);
+    
+                    // Add legend
+                    const legend = svg.append("g")
+                        .attr("font-family", "sans-serif")
+                        .attr("font-size", 10)
+                        .attr("text-anchor", "end")
+                        .selectAll("g")
+                        .data(["Hosted", "Non-Hosted"])
+                        .enter().append("g")
+                        .attr("transform", (d, i) => `translate(0,${height + 50 + i * 20})`);
+    
+                    legend.append("rect")
+                        .attr("x", width - 19)
+                        .attr("width", 19)
+                        .attr("height", 19)
+                        .attr("fill", (d, i) => i === 0 ? "#1f77b4" : "#ff7f0e");
+    
+                    legend.append("text")
+                        .attr("x", width - 24)
+                        .attr("y", 9.5)
+                        .attr("dy", "0.32em")
+                        .text(d => d);
+                });
+            }
+    
+            // Create Summer Olympics chart
+            createChart("data/summer_host.csv", "#summer-chart", "Summer Olympic Medals Avg by Country (Hosted vs Non-Hosted)");
+    
+            // Create Winter Olympics chart
+            createChart("data/winter_host.csv", "#winter-chart", "Winter Olympic Medals Avg by Country (Hosted vs Non-Hosted)");
+        </script>
+        </div>
+    <p>The above charts for Summer and Winter Olympics show that a country's performance increase when they host the Olympics.  </p>
+    <p>To see the actual pattern lets look at China's medal tally before hosting and during hosting and post hosting Olympics. </p>
+    <h1>Olympic Medals by Year - China </h1>
+  <script>
+    const data = [
+      { "Year": "2012", "Host": "No", "Medals": 128 },
+      { "Year": "2008", "Host": "Yes", "Medals": 184 },
+      { "Year": "2004", "Host": "No", "Medals": 94 },
+      { "Year": "2000", "Host": "No", "Medals": 79 }
+    ];
+
+    const columns = ["Year", "Host", "Medals"];
+
+    function tabulate(data, columns) {
+      const table = d3.select("body").append("table");
+      const thead = table.append("thead");
+      const tbody = table.append("tbody");
+
+      // Append the header row
+      thead.append("tr")
+        .selectAll("th")
+        .data(columns)
+        .enter()
+        .append("th")
+        .text(column => column);
+
+      // Create a row for each object in the data
+      const rows = tbody.selectAll("tr")
+        .data(data)
+        .enter()
+        .append("tr")
+        .attr("class", d => d.Host === "Yes" ? "highlight" : null);
+
+      // Create a cell in each row for each column
+      const cells = rows.selectAll("td")
+        .data(row => columns.map(column => ({column: column, value: row[column]})))
+        .enter()
+        .append("td")
+        .text(d => d.value);
+
+      return table;
+    }
+
+    // Create the table
+    tabulate(data, columns);
+  </script>
+ 
+  </div>
+  <p>We can clearly see China's performance is better during 2008 when they host the Olympics when compared to other results.</p>
+    <div class="container">
+        <a href="index.html" class="button">Home Page</a>
+        </div>
+    <footer>
+        <p>&copy; 2024.</p>
+    </footer>
+    </body>
+    </html>

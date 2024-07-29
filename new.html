@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <title>Olympics time Again !!</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        header,footer {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .summer{
+            padding-left: 100px;
+        }
+        img {
+            display: block;
+            margin: 0 auto; /* Center the image */
+            max-width: 100%; /* Responsive image */
+            height: 200px; /* Maintain aspect ratio */
+        }
+        .chart {
+            display: inline-block;
+            margin-right: 50px;
+        }
+        .bar {
+            fill: steelblue;
+        }
+        .bar:hover {
+            fill: brown;
+        }
+        .axis text {
+            font-size: 10px;
+        }
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            width: 200px;
+            height: 60px;
+            padding: 2px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        /* Styling for the actual button element */
+        button {
+            padding: 10px 20px;
+            background-color: #008CBA;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .container {
+            text-align: center; /* Center text and inline elements */
+            margin-top: 20px; /* Adjust top margin as needed */
+        }
+    </style>
+</head>
+<body>
+   
+    <header>
+        <h1>Its Olympics time Again !!!!</h1>
+
+    </header>
+    <div>
+    <img src="img/paris-2024-olympics.jpg" alt="Description of Image">
+ 
+    </div>
+
+    <main>
+        <p>The Olympic Games are considered the world's foremost sports competition with more than 200 teams, representing sovereign states and territories, participating.The Olympic Games are held every four years. Since 1994, they have alternated between the Summer and Winter Olympics every two years during the four-year Olympiad. The first Olympics started in 1896 and its been more than 125 years comprising of x summer olympics and y winter olympics. Lets take a quick look at top performing countries and athletes.</p>
+        <div id="summer">
+            <br></br>
+            <div id="chart1" class="chart"></div>
+            <div id="chart2" class="chart"></div>
+            <div id="chart3" class="chart"></div>
+            <div id="chart4" class="chart"></div>
+            <script>
+                    // Create a tooltip
+                var tooltip = d3.select("body").append("div")
+                        .attr("class", "tooltip")
+                        .style("opacity", 0);
+                // Function to create a horizontal bar chart
+                function createHorizontalBarChart(data, chartId,title) {
+                    const margin = {top: 30, right: 30, bottom: 40, left: 150},
+                        width = 700 - margin.left - margin.right,
+                        height = 400 - margin.top - margin.bottom;
+        
+                    const svg = d3.select(chartId)
+                        .append("svg")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform", `translate(${margin.left},${margin.top})`);
+        
+                    const x = d3.scaleLinear()
+                        .domain([0, d3.max(data, d => d.count)])
+                        .range([0, width]);
+        
+                    const y = d3.scaleBand()
+                        .range([0, height])
+                        .domain(data.map(d => d.name))
+                        .padding(0.1);
+
+                
+        
+                    svg.selectAll("rect")
+                        .data(data)
+                        .join("rect")
+                        .attr("class", "bar")
+                        .attr("y", d => y(d.name))
+                        .attr("height", y.bandwidth())
+                        .attr("x", 0)
+                        .attr("width", d => x(d.count));
+
+                    svg.selectAll(".bar")
+                        .on("mouseover", function(event, d) {
+                            tooltip.transition()
+                                .duration(200)
+                                .style("opacity", .9);
+                            tooltip.html("Name: " + d.name + "-" + d.country + "<br/>" + "Medals: " + d.count)
+                                .style("left", (event.pageX + 5) + "px")
+                                .style("top", (event.pageY - 28) + "px");
+                        })
+                    .on("mouseout", function(d) {
+                        tooltip.transition()
+                            .duration(500)
+                            .style("opacity", 0);
+                    });
+                        
+                    svg.append("g")
+                        .attr("class", "x axis")
+                        .attr("transform", `translate(0,${height})`)
+                        .call(d3.axisBottom(x));
+                    svg.append("text")
+                        .attr("x", width / 2)
+                        .attr("y", 0 - (margin.top / 2))
+                        .attr("text-anchor", "middle")
+                        .style("font-size", "16px")
+                        .style("font-weight", "bold")
+                        .text(title);
+        
+                    svg.append("g")
+                        .attr("class", "y axis")
+                        .call(d3.axisLeft(y));
+                }
+        
+                // Load and process CSV data
+                Promise.all([
+                    d3.csv("data/top_countries.csv", d3.autoType),
+                    d3.csv("data/top_athletes.csv", d3.autoType)
+                ]).then(([data1, data2]) => {
+                    createHorizontalBarChart(data1, "#chart1","Top Performing countries in Summer Olympics");
+                    createHorizontalBarChart(data2, "#chart2","Top Performing Athletes in Summer Olympics");
+                    // createHorizontalBarChart(data1, "#chart2","Top Performing countries in Winter Olympics");
+                    // createHorizontalBarChart(data2, "#chart2","Top Performing Athletes in Winter Olympics");
+                }).catch(error => {
+                    console.error("Error loading the CSV files:", error);
+                });
+            </script>
+             <script>
+                // Create a tooltip
+            var tooltip = d3.select("body").append("div")
+                    .attr("class", "tooltip")
+                    .style("opacity", 0);
+            // Function to create a horizontal bar chart
+            function createHorizontalBarChart(data, chartId,title) {
+                const margin = {top: 30, right: 30, bottom: 40, left: 150},
+                    width = 700 - margin.left - margin.right,
+                    height = 400 - margin.top - margin.bottom;
+    
+                const svg = d3.select(chartId)
+                    .append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", `translate(${margin.left},${margin.top})`);
+    
+                const x = d3.scaleLinear()
+                    .domain([0, d3.max(data, d => d.count)])
+                    .range([0, width]);
+    
+                const y = d3.scaleBand()
+                    .range([0, height])
+                    .domain(data.map(d => d.name))
+                    .padding(0.1);
+
+            
+    
+                svg.selectAll("rect")
+                    .data(data)
+                    .join("rect")
+                    .attr("class", "bar")
+                    .attr("y", d => y(d.name))
+                    .attr("height", y.bandwidth())
+                    .attr("x", 0)
+                    .attr("width", d => x(d.count));
+
+                svg.selectAll(".bar")
+                    .on("mouseover", function(event, d) {
+                        tooltip.transition()
+                            .duration(200)
+                            .style("opacity", .9);
+                        tooltip.html("Name: " + d.name + "<br/>" + "Medals: " + d.count)
+                            .style("left", (event.pageX + 5) + "px")
+                            .style("top", (event.pageY - 28) + "px");
+                    })
+                .on("mouseout", function(d) {
+                    tooltip.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                });
+                    
+                svg.append("g")
+                    .attr("class", "x axis")
+                    .attr("transform", `translate(0,${height})`)
+                    .call(d3.axisBottom(x));
+                svg.append("text")
+                    .attr("x", width / 2)
+                    .attr("y", 0 - (margin.top / 2))
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "16px")
+                    .style("font-weight", "bold")
+                    .text(title);
+    
+                svg.append("g")
+                    .attr("class", "y axis")
+                    .call(d3.axisLeft(y));
+            }
+    
+            // Load and process CSV data
+            Promise.all([
+                d3.csv("data/top_countries_winter.csv", d3.autoType),
+                d3.csv("data/top_athletes_winter.csv", d3.autoType)
+            ]).then(([data1, data2]) => {
+                createHorizontalBarChart(data1, "#chart3","Top Performing countries in Winter Olympics");
+                createHorizontalBarChart(data2, "#chart4","Top Performing Athletes in Winter Olympics");
+                // createHorizontalBarChart(data1, "#chart2","Top Performing countries in Winter Olympics");
+                // createHorizontalBarChart(data2, "#chart2","Top Performing Athletes in Winter Olympics");
+            }).catch(error => {
+                console.error("Error loading the CSV files:", error);
+            });
+        </script>
+       
+        </div>
+
+        <p>Lets go through a Journey with Summer Olympics to answer a question of whether Hosting Olympics improves Performance of a Country !!!!</p>
+        <div class="container">
+        <a href="bar.html" class="button">Continue</a>
+        </div>
+
+    </main>
+
+    <footer>
+        <p>&copy; 2024.</p>
+    </footer>
+</body>
+</html>
